@@ -1,5 +1,5 @@
 'use client';
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -29,7 +29,13 @@ import { Button } from '@/components/ui/button';
 import { useParams, useRouter } from 'next/navigation';
 import { useModal } from '@/hooks/user-modal-store';
 import { ChannelType } from '@prisma/client';
-import { Select, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import {
+  Select,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { classNames } from 'uploadthing/client';
 import { SelectContent } from '@radix-ui/react-select';
 
@@ -46,19 +52,29 @@ const formSchema = z.object({
   type: z.nativeEnum(ChannelType),
 });
 
-const CreateChannleModal: FC<createChannelModalProps> = ({}) => {
-  const { isOpen, onClose, type } = useModal();
+const CreateChannelModal: FC<createChannelModalProps> = () => {
+  const { isOpen, onClose, type, data } = useModal();
   const router = useRouter();
   const params = useParams();
 
   const isModalOpen = isOpen && type === 'createChannel';
+  const { channelType } = data;
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      type: ChannelType.TEXT,
+      type: channelType || ChannelType.TEXT,
     },
   });
+
+  useEffect(() => {
+    if (channelType) {
+      form.setValue('type', channelType);
+    } else {
+      form.setValue('type', ChannelType.TEXT);
+    }
+  }, [channelType]);
 
   const isLoading = form.formState.isSubmitting;
 
@@ -70,6 +86,7 @@ const CreateChannleModal: FC<createChannelModalProps> = ({}) => {
           serverId: params?.serverId,
         },
       });
+
       await axios.post(url, values);
 
       form.reset();
@@ -127,10 +144,12 @@ const CreateChannleModal: FC<createChannelModalProps> = ({}) => {
                     >
                       <FormControl>
                         {/* @ts-ignore */}
-                        <SelectTrigger className="bg-zinc-300/50 border-0 focus:ring-0 text-black ring-offset-0 focus:ring-offset-0 capitalize outline-none"></SelectTrigger>
+                        <SelectTrigger className="bg-zinc-300/50 border-0 focus:ring-0 text-black ring-offset-0 focus:ring-offset-0 capitalize outline-none">
+                          <SelectValue placeholder="Select a channel type" />
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectValue placeholder="Select a channel type">
+                        <SelectGroup>
                           {Object.values(ChannelType).map((type) => (
                             <SelectItem
                               key={type}
@@ -140,7 +159,7 @@ const CreateChannleModal: FC<createChannelModalProps> = ({}) => {
                               {type?.toLowerCase()}
                             </SelectItem>
                           ))}
-                        </SelectValue>
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -160,4 +179,4 @@ const CreateChannleModal: FC<createChannelModalProps> = ({}) => {
   );
 };
 
-export default CreateChannleModal;
+export default CreateChannelModal;
